@@ -1,0 +1,4 @@
+1. Should not add duplicate values
+    1.1 Check the date,transaction amount,description to check if they're the same
+2. It should keep adding the data underneath
+3. It should integrate with the excel shenanigans

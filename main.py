@@ -1,51 +1,40 @@
 from openpyxl import load_workbook
 import csv
 from cateogrizer import categorizer
-
-print("WestPac Exclusive Banker")
-
+from csv_reader import readFile
+from config import PATH_BANK_STATEMENT,PATH_OUTPUT_FILE
+from excel_writer import addToExcel
+from datetime import datetime
 
 debitList=[]
 creditList=[]
+transactions=readFile(PATH_BANK_STATEMENT)
+paymentMethod='WestPac'
 
-with open('test.csv',mode='r',newline="",encoding="utf-8") as file:
-    paymentMethod='WestPac'
-    reader=csv.reader(file)
-    transactions=list(reader)
-    transactions=transactions[::-1]
-    transactions=transactions[:-1]
-    for row in transactions:
-        #The Row without the bank number as I do not need that
-        cleanedRow=row[1:]
-        date=cleanedRow[0]
-        if cleanedRow[2]!="":
-                category,merchant=categorizer(cleanedRow)
-                description=cleanedRow[1]
-                grossAmount=float(cleanedRow[2])
-                myshares=grossAmount
-                notes=""
-                if category=="misc":
-                    notes="Requires Review"
-                debitList.append([date,category.title(),'',description,merchant.title(),grossAmount,'N',grossAmount,paymentMethod,notes])
-        else:
-            type='Bank Transfer'
-            source='me'
-            amount=float(cleanedRow[3])
-            notes=''
-            creditList.append([date,source,type,amount,paymentMethod,notes])
-   
+print("WestPac Exclusive Banker")
+for transaction in transactions:
+    #The Row without the bank number as it's not needed
+    cleanedTransaction=transaction[1:]
+    #*_ is used to unpack the list and ignore everything after "credit"
+    date,description,debit,credit,*_=cleanedTransaction
+    notes=""
 
-wb = load_workbook(filename = "book2.xlsx")
-sheet=wb["Sheet1"]
+    #Debit Only 
+    if debit!="":
+            category,merchant=categorizer(cleanedTransaction)
+            grossAmount=float(debit)
+            myshares=grossAmount
+            if category=="misc":
+                notes="Requires Review"
+            debitList.append([date,category.title(),'',description,merchant.title(),grossAmount,'N',myshares,paymentMethod,notes])
+    #Credit Only
+    else:
+        type='Bank Transfer'
+        source='me'
+        amount=float(credit)
+        creditList.append([date,source,type,amount,paymentMethod,notes])
 
-startRow=6
-startCol=3 #Translates to C
-for row in debitList:
-    print(row)
-    for column,value in enumerate(row,start=startCol):
-        sheet.cell(row=startRow,column=column).value=value
-    startRow+=1
-wb.save('Book2.xlsx')
+addToExcel(debitList)
 
 
 #Modular, Description, Add Underneath
